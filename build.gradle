@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'org.jobrunr'
+version = '0.0.1-SNAPSHOT'
+description = 'demo-catch'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.jobrunr:jobrunr-spring-boot-4-starter:9.0.3'
+
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.springframework.boot:spring-boot-starter-jdbc'
+
+    implementation(platform("ai.djl:bom:0.40.0"))
+
+    implementation("ai.djl:api")
+    implementation("ai.djl:basicdataset")
+
+    runtimeOnly("ai.djl.pytorch:pytorch-engine")
+    runtimeOnly("ai.djl.pytorch:pytorch-jni:2.7.1-0.40.0")
+    runtimeOnly("ai.djl.pytorch:pytorch-model-zoo")
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.register('generateSyntheticCaptures', JavaExec) {
+    group = 'demo'
+    description = 'Generates synthetic webcam captures for pipeline verification'
+    mainClass = 'org.jobrunr.democatch.tools.SyntheticCaptureGenerator'
+    classpath = sourceSets.main.runtimeClasspath
+    args '--cards-dir', 'cards', '--out-dir', 'data/captures',
+            '--per-card', (project.findProperty('perCard') ?: '10').toString()
+}
