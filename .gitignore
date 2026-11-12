@@ -35,6 +35,3 @@ out/
 
 ### VS Code ###
 .vscode/
-
-# demo-catch runtime data
-data/
