@@ -1,13 +1,7 @@
 package org.jobrunr.democatch.jobs;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jobrunr.democatch.config.AppPaths;
+import ai.djl.modality.cv.ImageFactory;
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.jobrunr.democatch.ml.CardClassifier;
 import org.jobrunr.democatch.ml.ConfusionMatrix;
 import org.jobrunr.jobs.annotations.Job;
@@ -17,18 +11,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import ai.djl.modality.cv.ImageFactory;
-import ai.djl.translate.TranslateException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class CardEvaluationJob {
 
-    private static final Logger LOGGER = new JobRunrDashboardLogger(
-            LoggerFactory.getLogger(CardEvaluationJob.class));
+    private static final Logger LOGGER = new JobRunrDashboardLogger(LoggerFactory.getLogger(CardEvaluationJob.class));
 
-    private final AppPaths paths;
+    private final ApplicationConfiguration paths;
 
-    public CardEvaluationJob(AppPaths paths) {
+    public CardEvaluationJob(ApplicationConfiguration paths) {
         this.paths = paths;
     }
 
@@ -61,18 +57,16 @@ public class CardEvaluationJob {
     Path requireModel() {
         Path modelDir = paths.model();
         if (!Files.isDirectory(modelDir)) {
-            throw new IllegalStateException(
-                    "No trained model found in " + modelDir.toAbsolutePath() + " — run train first");
+            throw new IllegalStateException("No trained model found in " + modelDir.toAbsolutePath() + " — run train first");
         }
         if (!Files.exists(modelDir.resolve("head.jd"))) {
-            throw new IllegalStateException(
-                    "No trained model found in " + modelDir.toAbsolutePath() + " — run train first");
+            throw new IllegalStateException("No trained model found in " + modelDir.toAbsolutePath() + " — run train first");
         }
         return modelDir;
     }
 
     private List<Path> validImages() throws IOException {
-        Path validDir = paths.datasetValid();
+        Path validDir = paths.validationDatasetPath();
         if (!Files.isDirectory(validDir)) {
             throw new IllegalStateException("No validation dataset at " + validDir.toAbsolutePath() + " — run prepare first");
         }

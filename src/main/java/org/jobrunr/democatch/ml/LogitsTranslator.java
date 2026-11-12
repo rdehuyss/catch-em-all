@@ -24,7 +24,18 @@ public class LogitsTranslator implements Translator<Image, float[]> {
         return new ai.djl.translate.Pipeline()
                 .add(new Resize(size, size))
                 .add(new ToTensor())
-                .transform(new NDList(input.toNDArray(ctx.getNDManager(), Image.Flag.COLOR)));
+                .transform(new NDList(centerSquare(input).toNDArray(ctx.getNDManager(), Image.Flag.COLOR)));
+    }
+
+    /**
+     * Webcam frames are wide while training images are square center-crops; a plain
+     * resize would stretch the frame and shift the input distribution.
+     */
+    public static Image centerSquare(Image image) {
+        int minSide = Math.min(image.getWidth(), image.getHeight());
+        int x = (image.getWidth() - minSide) / 2;
+        int y = (image.getHeight() - minSide) / 2;
+        return image.getSubImage(x, y, minSide, minSide);
     }
 
     @Override

@@ -1,20 +1,19 @@
 package org.jobrunr.democatch.web;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jobrunr.democatch.config.AppPaths;
+import ai.djl.modality.cv.Image;
+import ai.djl.modality.cv.ImageFactory;
+import ai.djl.translate.TranslateException;
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.jobrunr.democatch.ml.CardClassifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.ImageFactory;
-import ai.djl.translate.TranslateException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class CardPredictionService {
@@ -25,11 +24,11 @@ public class CardPredictionService {
     public record Prediction(String label, double probability, List<Ranking> top3) {
     }
 
-    private final AppPaths paths;
+    private final ApplicationConfiguration paths;
     private volatile CardClassifier classifier;
     private volatile long classesStamp = Long.MIN_VALUE;
 
-    public CardPredictionService(AppPaths paths) {
+    public CardPredictionService(ApplicationConfiguration paths) {
         this.paths = paths;
     }
 
@@ -47,13 +46,13 @@ public class CardPredictionService {
             }
             order.sort((a, b) -> Float.compare(probabilities[b], probabilities[a]));
 
-            int best = order.get(0);
+            int best = order.getFirst();
             List<Ranking> top3 = order.subList(0, Math.min(3, order.size())).stream()
                     .map(i -> new Ranking(classes.get(i), probabilities[i]))
                     .toList();
             return new Prediction(classes.get(best), probabilities[best], top3);
         } catch (IOException | TranslateException e) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Cannot read image: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "Cannot read image: " + e.getMessage());
         }
     }
 
@@ -78,7 +77,7 @@ public class CardPredictionService {
             }
             return classifier;
         } catch (IOException | ai.djl.repository.zoo.ModelNotFoundException
-                | ai.djl.MalformedModelException e) {
+                 | ai.djl.MalformedModelException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot load model: " + e.getMessage());
         }
     }

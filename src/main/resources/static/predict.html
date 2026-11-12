@@ -24,7 +24,10 @@
 </header>
 <main>
     <section class="camera">
-        <video id="video" autoplay playsinline muted></video>
+        <div class="camera-wrap">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="guide"><span class="guide-label">card inside the square</span></div>
+        </div>
         <div class="controls">
             <button id="predictBtn" disabled>What card is this?</button>
             <span id="status">Starting camera…</span>

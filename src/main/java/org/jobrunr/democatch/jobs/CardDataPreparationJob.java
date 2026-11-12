@@ -1,24 +1,22 @@
 package org.jobrunr.democatch.jobs;
 
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-import javax.imageio.ImageIO;
-
 import org.jobrunr.democatch.catalog.CardCatalog;
-import org.jobrunr.democatch.config.AppPaths;
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.jobrunr.jobs.annotations.Job;
 import org.jobrunr.jobs.context.JobContext;
 import org.jobrunr.jobs.context.JobRunrDashboardLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 
 @Component
 public class CardDataPreparationJob {
@@ -28,16 +26,16 @@ public class CardDataPreparationJob {
     private static final Logger LOGGER = new JobRunrDashboardLogger(LoggerFactory.getLogger(CardDataPreparationJob.class));
 
     private final CardCatalog cards;
-    private final AppPaths paths;
+    private final ApplicationConfiguration paths;
 
-    public CardDataPreparationJob(CardCatalog cards, AppPaths paths) {
+    public CardDataPreparationJob(CardCatalog cards, ApplicationConfiguration paths) {
         this.cards = cards;
         this.paths = paths;
     }
 
     @Job(name = "Prepare card images", retries = 0)
     public void prepare(JobContext jobContext) throws IOException {
-        List<Path> classDirs = cardClassDirs(paths.captures());
+        List<Path> classDirs = cardClassDirs(paths.capturesPath());
         var progressBar = jobContext.progressBar(classDirs.size());
         prepareDataset(classDirs, progressBar::incrementSucceeded);
     }
@@ -45,8 +43,8 @@ public class CardDataPreparationJob {
     void prepareDataset(List<Path> classDirs, Runnable onClassDone) throws IOException {
         LOGGER.info("Preparing {} card classes", classDirs.size());
 
-        Path trainRoot = paths.datasetTrain();
-        Path validRoot = paths.datasetValid();
+        Path trainRoot = paths.trainingDatasetPath();
+        Path validRoot = paths.validationDatasetPath();
         deleteRecursively(trainRoot);
         deleteRecursively(validRoot);
         Files.createDirectories(trainRoot);

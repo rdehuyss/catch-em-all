@@ -1,18 +1,14 @@
 package org.jobrunr.democatch.tools;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
+import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Random;
-
-import javax.imageio.ImageIO;
 
 /**
  * Generates synthetic webcam-like captures from the card PNGs so the whole
@@ -21,7 +17,7 @@ import javax.imageio.ImageIO;
  */
 public final class SyntheticCaptureGenerator {
 
-    public static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException {
         Path cardsDir = Path.of(arg(args, "--cards-dir", "cards"));
         Path outDir = Path.of(arg(args, "--out-dir", "data/captures"));
         int perCard = Integer.parseInt(arg(args, "--per-card", "10"));

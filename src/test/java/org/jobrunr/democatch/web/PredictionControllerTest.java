@@ -3,12 +3,11 @@ package org.jobrunr.democatch.web;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Path;
@@ -20,7 +19,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(PredictionControllerTest.TestConfig.class)
 class PredictionControllerTest {
 
     @TempDir
@@ -29,12 +27,9 @@ class PredictionControllerTest {
     @Autowired
     MockMvc mockMvc;
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public org.jobrunr.democatch.config.AppPaths appPaths() {
-            return new org.jobrunr.democatch.config.AppPaths(tempDir.toString());
-        }
+    @DynamicPropertySource
+    static void dataDir(DynamicPropertyRegistry registry) {
+        registry.add("app.data-dir", () -> tempDir.toString());
     }
 
     @Test

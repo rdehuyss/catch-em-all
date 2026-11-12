@@ -1,5 +1,6 @@
 package org.jobrunr.democatch.jobs;
 
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,7 +20,7 @@ class CardTrainingJobTest {
     Path tempDir;
 
     private CardTrainingJob job() {
-        return new CardTrainingJob(new org.jobrunr.democatch.config.AppPaths(tempDir.toString()));
+        return new CardTrainingJob(new ApplicationConfiguration(tempDir.toString()));
     }
 
     private void writeImage(Path dir, String name) throws IOException {

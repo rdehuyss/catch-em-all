@@ -1,5 +1,6 @@
 package org.jobrunr.democatch.jobs;
 
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -34,9 +35,9 @@ class CardDataPreparationJobTest {
     private CardDataPreparationJob job(Path captures) {
         return new CardDataPreparationJob(
                 new org.jobrunr.democatch.catalog.CardCatalog("cards"),
-                new org.jobrunr.democatch.config.AppPaths(tempDir.toString()) {
+                new ApplicationConfiguration(tempDir.toString()) {
                     @Override
-                    public Path captures() {
+                    public Path capturesPath() {
                         return captures;
                     }
                 });
@@ -49,7 +50,7 @@ class CardDataPreparationJobTest {
             writeImage(captures.resolve("jd01"), "img_" + i + ".jpg", 64, 96);
         }
         CardDataPreparationJob prepared = job(captures);
-        prepared.prepareDataset(List.of(captures.resolve("jd01")), () -> { });
+        prepared.prepareDataset(List.of(captures.resolve("jd01")), () -> {});
 
         Path train = tempDir.resolve("dataset").resolve("train").resolve("jd01");
         Path valid = tempDir.resolve("dataset").resolve("valid").resolve("jd01");
@@ -71,7 +72,7 @@ class CardDataPreparationJobTest {
         writeImage(captures.resolve("jd02"), "img_1.jpg", 32, 32);
 
         CardDataPreparationJob prepared = job(captures);
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> prepared.prepareDataset(List.of(captures.resolve("jd02")), () -> { }));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> prepared.prepareDataset(List.of(captures.resolve("jd02")), () -> {}));
         assertTrue(ex.getMessage().contains("jd02"), "message must name the offending card: " + ex.getMessage());
     }
 
@@ -85,7 +86,7 @@ class CardDataPreparationJobTest {
         writeImage(captures.resolve("jd01"), "img_1.jpg", 32, 32);
         writeImage(captures.resolve("jd01"), "img_2.jpg", 32, 32);
 
-        job(captures).prepareDataset(job(captures).cardClassDirs(captures), () -> { });
+        job(captures).prepareDataset(job(captures).cardClassDirs(captures), () -> {});
 
         assertTrue(Files.notExists(tempDir.resolve("dataset").resolve("train").resolve("junk")));
     }

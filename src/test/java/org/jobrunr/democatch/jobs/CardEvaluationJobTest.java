@@ -1,5 +1,6 @@
 package org.jobrunr.democatch.jobs;
 
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -19,7 +20,7 @@ class CardEvaluationJobTest {
     @Test
     void failsWithClearMessageWhenNoModelTrained() {
         CardEvaluationJob job = new CardEvaluationJob(
-                new org.jobrunr.democatch.config.AppPaths(tempDir.toString()));
+                new ApplicationConfiguration(tempDir.toString()));
         IllegalStateException ex = assertThrows(IllegalStateException.class, job::requireModel);
         assertTrue(ex.getMessage().contains("train"), ex.getMessage());
     }
@@ -30,7 +31,7 @@ class CardEvaluationJobTest {
         Files.createDirectories(modelDir);
         Files.write(modelDir.resolve("head.jd"), new byte[]{1});
         CardEvaluationJob job = new CardEvaluationJob(
-                new org.jobrunr.democatch.config.AppPaths(tempDir.toString()));
+                new ApplicationConfiguration(tempDir.toString()));
         assertEquals(modelDir, job.requireModel());
     }
 }

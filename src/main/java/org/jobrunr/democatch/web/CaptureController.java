@@ -1,13 +1,7 @@
 package org.jobrunr.democatch.web;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.util.Map;
-
 import org.jobrunr.democatch.catalog.CardCatalog;
-import org.jobrunr.democatch.config.AppPaths;
+import org.jobrunr.democatch.config.ApplicationConfiguration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,13 +13,19 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Map;
+
 @RestController
 public class CaptureController {
 
     private final CardCatalog cards;
-    private final AppPaths paths;
+    private final ApplicationConfiguration paths;
 
-    public CaptureController(CardCatalog cards, AppPaths paths) {
+    public CaptureController(CardCatalog cards, ApplicationConfiguration paths) {
         this.cards = cards;
         this.paths = paths;
     }
@@ -42,7 +42,7 @@ public class CaptureController {
         if (!cards.exists(cardId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown card " + cardId);
         }
-        Path dir = paths.captures().resolve(cardId);
+        Path dir = paths.capturesPath().resolve(cardId);
         Files.createDirectories(dir);
         Files.write(dir.resolve(Instant.now().toEpochMilli() + ".jpg"), image.getBytes());
         try (var files = Files.list(dir)) {

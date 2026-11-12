@@ -1,29 +1,16 @@
 package org.jobrunr.democatch.jobs;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.jobrunr.democatch.config.AppPaths;
-import org.jobrunr.jobs.annotations.Job;
-import org.jobrunr.jobs.context.JobContext;
-import org.jobrunr.jobs.context.JobRunrDashboardLogger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import ai.djl.Application;
 import ai.djl.basicdataset.cv.classification.ImageFolder;
-import ai.djl.modality.cv.Image;
-import ai.djl.modality.cv.transform.Resize;
-import ai.djl.modality.cv.transform.RandomResizedCrop;
-import ai.djl.modality.cv.transform.ToTensor;
 import ai.djl.modality.Classifications;
+import ai.djl.modality.cv.Image;
+import ai.djl.modality.cv.transform.RandomResizedCrop;
+import ai.djl.modality.cv.transform.Resize;
+import ai.djl.modality.cv.transform.ToTensor;
+import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.types.Shape;
 import ai.djl.nn.Block;
+import ai.djl.nn.LambdaBlock;
 import ai.djl.nn.SequentialBlock;
 import ai.djl.nn.core.Linear;
 import ai.djl.repository.zoo.Criteria;
@@ -33,12 +20,29 @@ import ai.djl.training.EasyTrain;
 import ai.djl.training.Trainer;
 import ai.djl.training.dataset.Dataset;
 import ai.djl.training.evaluator.Accuracy;
-import ai.djl.training.listener.TrainingListenerAdapter;
 import ai.djl.training.listener.TrainingListener;
+import ai.djl.training.listener.TrainingListenerAdapter;
 import ai.djl.training.loss.Loss;
 import ai.djl.training.optimizer.Optimizer;
-import ai.djl.training.util.ProgressBar;
 import ai.djl.training.tracker.Tracker;
+import ai.djl.training.util.ProgressBar;
+import org.jobrunr.democatch.config.ApplicationConfiguration;
+import org.jobrunr.jobs.annotations.Job;
+import org.jobrunr.jobs.context.JobContext;
+import org.jobrunr.jobs.context.JobRunrDashboardLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import static ai.djl.Model.newInstance;
 
 @Component
 public class CardTrainingJob {
@@ -49,14 +53,14 @@ public class CardTrainingJob {
 
     private static final Logger LOGGER = new JobRunrDashboardLogger(LoggerFactory.getLogger(CardTrainingJob.class));
 
-    private final AppPaths paths;
+    private final ApplicationConfiguration paths;
 
-    public CardTrainingJob(AppPaths paths) {
+    public CardTrainingJob(ApplicationConfiguration paths) {
         this.paths = paths;
     }
 
     @Job(name = "Train Java-Dex card classifier", retries = 0)
-    public void train(JobContext jobContext, Integer epochs, Integer batchSize) throws Exception {
+    public void train(Integer epochs, Integer batchSize, JobContext jobContext) throws Exception {
         int actualEpochs = epochs != null ? epochs : DEFAULT_EPOCHS;
         int actualBatchSize = batchSize != null ? batchSize : DEFAULT_BATCH_SIZE;
 
@@ -64,8 +68,8 @@ public class CardTrainingJob {
         String backboneLayersArg = backboneLayers();
         var progressBar = jobContext.progressBar(actualEpochs + 2);
 
-        Path trainDir = paths.datasetTrain();
-        Path validDir = paths.datasetValid();
+        Path trainDir = paths.trainingDatasetPath();
+        Path validDir = paths.validationDatasetPath();
         Path modelDir = paths.model();
         Files.createDirectories(modelDir);
 
@@ -88,14 +92,14 @@ public class CardTrainingJob {
             Block backbone = pretrained.getBlock();
             backbone.freezeParameters(true);
 
-            float accuracy = Float.NaN;
-            float loss = Float.NaN;
-            try (var model = ai.djl.Model.newInstance("java-dex")) {
+            float accuracy;
+            float loss;
+            try (var model = newInstance("java-dex")) {
                 SequentialBlock block = new SequentialBlock();
                 block.add(backbone);
                 // PyTorch marks frozen traced-module outputs as inference tensors;
                 // the head needs a clone to run under autograd.
-                block.add(new ai.djl.nn.LambdaBlock(nd -> new ai.djl.ndarray.NDList(nd.singletonOrThrow().duplicate())));
+                block.add(new LambdaBlock(nd -> new NDList(nd.singletonOrThrow().duplicate())));
                 block.add(Linear.builder().setUnits(classes.size()).build());
                 model.setBlock(block);
 
@@ -104,7 +108,7 @@ public class CardTrainingJob {
                         .build();
 
                 List<TrainingListener> listeners = new ArrayList<>(List.of(TrainingListener.Defaults.logging()));
-                listeners.add(epochProgress(() -> progressBar.incrementSucceeded()));
+                listeners.add(epochProgress(progressBar::incrementSucceeded));
 
                 DefaultTrainingConfig config = new DefaultTrainingConfig(Loss.softmaxCrossEntropyLoss())
                         .optOptimizer(optimizer)
@@ -128,7 +132,7 @@ public class CardTrainingJob {
                 model.setProperty("epochs", Integer.toString(actualEpochs));
                 saveHead(modelDir, block);
 
-                var props = new java.util.Properties();
+                var props = new Properties();
                 props.setProperty("backbone", backboneLayersArg);
                 props.setProperty("imageSize", Integer.toString(IMAGE_SIZE));
                 props.setProperty("classes", Integer.toString(classes.size()));
@@ -154,7 +158,7 @@ public class CardTrainingJob {
             return "18";
         }
         try (var in = Files.newInputStream(propsFile)) {
-            var props = new java.util.Properties();
+            var props = new Properties();
             props.load(in);
             return props.getProperty("backbone", "18");
         } catch (IOException e) {
@@ -184,13 +188,13 @@ public class CardTrainingJob {
     }
 
     List<String> validateClasses() throws IOException {
-        List<String> trainClasses = classFolders(paths.datasetTrain());
-        List<String> validClasses = classFolders(paths.datasetValid());
+        List<String> trainClasses = classFolders(paths.trainingDatasetPath());
+        List<String> validClasses = classFolders(paths.validationDatasetPath());
 
         if (trainClasses.size() < 2) {
             throw new IllegalStateException(
                     "Need at least two card classes to train, found " + trainClasses
-                            + " in " + paths.datasetTrain().toAbsolutePath());
+                            + " in " + paths.trainingDatasetPath().toAbsolutePath());
         }
         if (!trainClasses.equals(validClasses)) {
             throw new IllegalStateException(

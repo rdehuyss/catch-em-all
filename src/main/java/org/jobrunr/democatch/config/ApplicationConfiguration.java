@@ -1,32 +1,28 @@
 package org.jobrunr.democatch.config;
 
-import java.nio.file.Path;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
+
 @Component
-public class AppPaths {
+public class ApplicationConfiguration {
 
     private final Path dataDir;
 
-    public AppPaths(@Value("${app.data-dir:data}") String dataDir) {
+    public ApplicationConfiguration(@Value("${app.data-dir:data}") String dataDir) {
         this.dataDir = Path.of(dataDir);
     }
 
-    public Path root() {
-        return dataDir;
-    }
-
-    public Path captures() {
+    public Path capturesPath() {
         return dataDir.resolve("captures");
     }
 
-    public Path datasetTrain() {
+    public Path trainingDatasetPath() {
         return dataDir.resolve("dataset").resolve("train");
     }
 
-    public Path datasetValid() {
+    public Path validationDatasetPath() {
         return dataDir.resolve("dataset").resolve("valid");
     }
 

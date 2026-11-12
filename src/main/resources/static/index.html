@@ -14,7 +14,10 @@
 
 <main>
     <section class="camera">
-        <video id="video" autoplay playsinline muted></video>
+        <div class="camera-wrap">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="guide"><span class="guide-label">keep the card inside this square</span></div>
+        </div>
         <canvas id="canvas" hidden></canvas>
         <div class="controls">
             <button id="captureBtn" disabled>Capture for selected card</button>
